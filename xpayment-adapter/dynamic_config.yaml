@@ -1,0 +1,4 @@
+kafka:
+  clusters:
+    - name: xpayment-adapter-kafka
+      bootstrapServers: kafka:9092

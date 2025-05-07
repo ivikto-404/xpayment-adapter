@@ -1,22 +1,7 @@
 version: '3.9'
 
 services:
-
-  # --- PostgreSQL ---
-  postgres:
-    image: postgres:15
-    container_name: postgres
-    environment:
-      POSTGRES_DB: xpayment
-      POSTGRES_USER: xpayment_user
-      POSTGRES_PASSWORD: xpayment_pass
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  # --- Kafka + Zookeeper ---
+  # --- Kafka + Zookeeper + Ui ---
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
     container_name: zookeeper
@@ -38,6 +23,21 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     restart: unless-stopped
+    volumes:
+      - kafka-data:/bitnami/kafka
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8081:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: true
+      AUTH_TYPE: "LOGIN_FORM"
+      SPRING_SECURITY_USER_NAME: kafka
+      SPRING_SECURITY_USER_PASSWORD: kafka
+    volumes:
+      - ./dynamic_config.yaml:/etc/kafkaui/dynamic_config.yaml
 
   # --- Spring Boot App ---
   xpayment-adapter:
@@ -49,17 +49,14 @@ services:
       - "8443:8443"
       - "5005:5005"
     volumes:
-      - ./certs:/app/certs  # если нужен TLS
+      - ./certs:/app/certs
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/xpayment
-      SPRING_DATASOURCE_USERNAME: xpayment_user
-      SPRING_DATASOURCE_PASSWORD: xpayment_pass
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
-      - postgres
       - kafka
     restart: unless-stopped
 
 volumes:
-  pgdata:
+  kafka-data:
+  kafka-ui-data:
